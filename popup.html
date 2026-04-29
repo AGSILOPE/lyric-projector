@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --bg: #0f172a;
+      --text: #f8fafc;
+    }
+    body {
+      width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 16px;
+      margin: 0;
+    }
+    h2 { font-size: 18px; margin-top: 0; display: flex; align-items: center; gap: 8px; }
+    .section { margin-bottom: 20px; }
+    .label { font-size: 13px; color: #94a3b8; margin-bottom: 8px; display: block; }
+    
+    /* Toggle Switch */
+    .switch-group { display: flex; justify-content: space-between; align-items: center; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155; transition: .4s; border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+      background-color: white; transition: .4s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Textarea */
+    textarea {
+      width: 100%; height: 80px; background: #1e293b; border: 1px solid #334155;
+      color: #e2e8f0; border-radius: 8px; padding: 8px; font-family: monospace; font-size: 12px;
+      resize: vertical;
+    }
+    
+    .btn-save {
+      width: 100%; background: var(--primary); color: white; border: none;
+      padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px;
+    }
+    .btn-save:hover { opacity: 0.9; }
+
+    .help { font-size: 11px; color: #64748b; line-height: 1.4; background: #1e293b; padding: 10px; border-radius: 8px; }
+    code { background: #334155; padding: 2px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h2>🎵 Lyric Projector</h2>
+  
+  <div class="section">
+    <div class="switch-group">
+      <span>Exibir Próxima Frase</span>
+      <label class="switch">
+        <input type="checkbox" id="show-next-line" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="label">CSS Customizado</span>
+    <textarea id="custom-css" placeholder="Ex: #active-line { color: gold; }"></textarea>
+  </div>
+
+  <div class="section">
+    <span class="label">Atalhos Úteis (Na Projeção)</span>
+    <div class="help">
+      <code>F</code>: Tela Cheia<br>
+      <code>H</code>: Modo HUD (Espelhado)<br>
+      <code>Esc</code>: Sair do Fullscreen
+    </div>
+  </div>
+
+  <button class="btn-save" id="save-btn">Salvar Alterações</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

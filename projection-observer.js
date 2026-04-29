@@ -22,6 +22,13 @@
     let activeText = '';
     let translatedText = '';
     let nextText = '';
+    let progress = 0;
+
+    // Tenta pegar o progresso da música (0 a 100)
+    const progressBar = document.querySelector('#progress-bar');
+    if (progressBar) {
+      progress = (progressBar.value / progressBar.max) * 100 || 0;
+    }
 
     // 1. Tenta Better Lyrics (Prioridade)
     const blActive = document.querySelector(SELECTORS.BL_ACTIVE);
@@ -49,11 +56,24 @@
       }
     }
 
-    if (!activeText) return; // Se não tem texto, não manda nada
-
-    // Só envia se mudou
+    // Se mudou ou o progresso mudou significativamente (manda progresso a cada 1%)
     const payload = activeText + translatedText + nextText;
-    if (payload === lastSentText) return;
+    
+    // Se a música acabou (não tem letra ativa mas tinha antes), limpa a tela
+    if (!activeText && lastSentText !== '') {
+      lastSentText = '';
+      chrome.runtime.sendMessage({ type: 'lyric-update', activeLine: '', activeTranslation: '', nextLine: '', progress });
+      return;
+    }
+
+    if (!activeText) return; 
+
+    if (payload === lastSentText) {
+      // Se a letra for a mesma, só manda o progresso se mudou
+      chrome.runtime.sendMessage({ type: 'progress-update', progress });
+      return;
+    }
+    
     lastSentText = payload;
 
     console.log('[Lyric Projector] Detectado:', activeText);
@@ -63,10 +83,11 @@
         type: 'lyric-update',
         activeLine: activeText.trim(),
         activeTranslation: translatedText.trim(),
-        nextLine: nextText.trim()
+        nextLine: nextText.trim(),
+        progress
       });
     } catch (e) {
-      console.log('[Lyric Projector] Erro ao enviar (extensão recarregada?):', e);
+      console.log('[Lyric Projector] Erro ao enviar:', e);
     }
   }
 
