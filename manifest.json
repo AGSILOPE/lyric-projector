@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Lyric Projector",
   "description": "Projeta letras do Better Lyrics em uma segunda tela — fundo preto + legendas sincronizadas",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "permissions": ["storage"],
   "background": {
     "service_worker": "background.js"
