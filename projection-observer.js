@@ -12,10 +12,10 @@
     BL_ACTIVE: '.blyrics--line.blyrics--animating',
     BL_WORDS: '.blyrics--word',
     BL_TRANSLATED: '[class*="translated"]',
-    BL_CONTAINER: '.blyrics-container',
     
-    YT_ACTIVE: 'ytmusic-player-lyrics-line-renderer[active]',
-    YT_CONTAINER: '#contents.ytmusic-section-list-renderer'
+    // Seletores nativos do YT Music (vários possíveis)
+    YT_ACTIVE: 'ytmusic-player-lyrics-line-renderer[active], .ytmusic-player-lyrics-line-renderer.active, .description.ytmusic-player-lyrics-line-renderer[active]',
+    YT_LINES: 'ytmusic-player-lyrics-line-renderer, .ytmusic-player-lyrics-line-renderer'
   };
 
   function captureAndSend() {
@@ -44,26 +44,30 @@
       const ytActive = document.querySelector(SELECTORS.YT_ACTIVE);
       if (ytActive) {
         activeText = ytActive.innerText;
-        
         const nextLine = ytActive.nextElementSibling;
         nextText = nextLine ? nextLine.innerText : '';
       }
     }
 
-    if (!activeText && !translatedText) return;
+    if (!activeText) return; // Se não tem texto, não manda nada
 
     // Só envia se mudou
     const payload = activeText + translatedText + nextText;
     if (payload === lastSentText) return;
     lastSentText = payload;
 
-    console.log('[Lyric Projector] Enviando para ponte:', activeText);
-    chrome.runtime.sendMessage({
-      type: 'lyric-update',
-      activeLine: activeText.trim(),
-      activeTranslation: translatedText.trim(),
-      nextLine: nextText.trim()
-    });
+    console.log('[Lyric Projector] Detectado:', activeText);
+    
+    try {
+      chrome.runtime.sendMessage({
+        type: 'lyric-update',
+        activeLine: activeText.trim(),
+        activeTranslation: translatedText.trim(),
+        nextLine: nextText.trim()
+      });
+    } catch (e) {
+      console.log('[Lyric Projector] Erro ao enviar (extensão recarregada?):', e);
+    }
   }
 
   function startObserver() {
