@@ -88,19 +88,19 @@
   </div>
 
   <script>
-    const channel = new BroadcastChannel('lyric-projector');
+    // const channel = new BroadcastChannel('lyric-projector'); // Removido
     const activeLineEl = document.getElementById('active-line');
     const activeTranslationEl = document.getElementById('active-translation');
     const nextLineEl = document.getElementById('next-line');
 
-    // Recebe letras da aba principal via BroadcastChannel
-    channel.onmessage = (event) => {
-      if (event.data.type === 'lyric-update') {
-        activeLineEl.textContent = event.data.activeLine || '';
-        activeTranslationEl.textContent = event.data.activeTranslation || '';
-        nextLineEl.textContent = event.data.nextLine || '';
+    // Recebe letras via sistema de mensagens da extensão
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'lyric-update') {
+        activeLineEl.textContent = message.activeLine || '';
+        activeTranslationEl.textContent = message.activeTranslation || '';
+        nextLineEl.textContent = message.nextLine || '';
       }
-    };
+    });
 
     // Auto-hide cursor após 3 segundos
     let cursorTimer;

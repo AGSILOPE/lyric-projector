@@ -1,40 +1,63 @@
 // projection-observer.js
-// Observa o DOM do Better Lyrics e envia a linha ativa para a janela de projeção
+// Observa o DOM do Better Lyrics E das letras nativas do YT Music
 
 (function() {
   'use strict';
   
-  const CHANNEL = new BroadcastChannel('lyric-projector');
+  // const CHANNEL = new BroadcastChannel('lyric-projector'); // Removido por limitação de origin
   let lastSentText = '';
-  let projectionWindow = null;
-
-  // Captura a linha ativa e envia
-  function captureAndSend() {
-    const activeLine = document.querySelector('.blyrics--line.blyrics--animating');
-    if (!activeLine) return;
-
-    // Pega texto da linha ativa (sem tradução)
-    const words = activeLine.querySelectorAll('.blyrics--word');
-    const activeText = Array.from(words).map(w => w.textContent).join('');
+  
+  // Seletores
+  const SELECTORS = {
+    BL_ACTIVE: '.blyrics--line.blyrics--animating',
+    BL_WORDS: '.blyrics--word',
+    BL_TRANSLATED: '[class*="translated"]',
+    BL_CONTAINER: '.blyrics-container',
     
-    // Pega tradução se existir
-    const translated = activeLine.querySelector('[class*="translated"]');
-    const translatedText = translated ? translated.innerText : '';
+    YT_ACTIVE: 'ytmusic-player-lyrics-line-renderer[active]',
+    YT_CONTAINER: '#contents.ytmusic-section-list-renderer'
+  };
 
-    // Pega próxima linha
-    let nextLine = activeLine.nextElementSibling;
-    while (nextLine && !nextLine.classList.contains('blyrics--line')) {
-      nextLine = nextLine.nextElementSibling;
+  function captureAndSend() {
+    let activeText = '';
+    let translatedText = '';
+    let nextText = '';
+
+    // 1. Tenta Better Lyrics (Prioridade)
+    const blActive = document.querySelector(SELECTORS.BL_ACTIVE);
+    if (blActive) {
+      const words = blActive.querySelectorAll(SELECTORS.BL_WORDS);
+      activeText = Array.from(words).map(w => w.textContent).join('');
+      
+      const translated = blActive.querySelector(SELECTORS.BL_TRANSLATED);
+      translatedText = translated ? translated.innerText : '';
+
+      let nextLine = blActive.nextElementSibling;
+      while (nextLine && !nextLine.classList.contains('blyrics--line')) {
+        nextLine = nextLine.nextElementSibling;
+      }
+      nextText = nextLine ? 
+        Array.from(nextLine.querySelectorAll(SELECTORS.BL_WORDS)).map(w => w.textContent).join('') : '';
+    } 
+    // 2. Tenta Letras Nativas do YT Music (Fallback)
+    else {
+      const ytActive = document.querySelector(SELECTORS.YT_ACTIVE);
+      if (ytActive) {
+        activeText = ytActive.innerText;
+        
+        const nextLine = ytActive.nextElementSibling;
+        nextText = nextLine ? nextLine.innerText : '';
+      }
     }
-    const nextText = nextLine ? 
-      Array.from(nextLine.querySelectorAll('.blyrics--word')).map(w => w.textContent).join('') : '';
+
+    if (!activeText && !translatedText) return;
 
     // Só envia se mudou
-    const payload = activeText + translatedText;
+    const payload = activeText + translatedText + nextText;
     if (payload === lastSentText) return;
     lastSentText = payload;
 
-    CHANNEL.postMessage({
+    chrome.runtime.sendMessage({
       type: 'lyric-update',
       activeLine: activeText.trim(),
       activeTranslation: translatedText.trim(),
@@ -42,69 +65,72 @@
     });
   }
 
-  // Observa mudanças no container de letras
   function startObserver() {
-    const container = document.querySelector('.blyrics-container');
-    if (!container) {
-      // Better Lyrics ainda não carregou, tenta de novo
-      setTimeout(startObserver, 1000);
-      return;
-    }
+    // Observa o body inteiro para mudanças leves (SPA navigation)
+    const observer = new MutationObserver((mutations) => {
+      // Re-injeta botão se sumir
+      injectButton();
+      
+      // Captura se houver mudança de classe ou estrutura
+      captureAndSend();
+    });
 
-    const observer = new MutationObserver(() => captureAndSend());
-    observer.observe(container, {
+    observer.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['class'] // Detecta quando .blyrics--animating muda
+      attributeFilter: ['class', 'active']
     });
 
-    // Também checa a cada 200ms como fallback
-    setInterval(captureAndSend, 200);
-    console.log('[Lyric Projector] Observer ativo no Better Lyrics');
+    // Check periódico de segurança
+    setInterval(captureAndSend, 300);
+    console.log('[Lyric Projector] Observer robusto iniciado (BL + YT Native)');
   }
 
-  // Abre janela de projeção
   function openProjection() {
     const url = chrome.runtime.getURL('projection.html');
-    projectionWindow = window.open(url, 'LyricProjector',
-      'width=1920,height=400,menubar=no,toolbar=no,location=no,status=no'
+    window.open(url, 'LyricProjector', 
+      'width=1200,height=400,menubar=no,toolbar=no,location=no,status=no'
     );
   }
 
-  // Injeta botão de projeção na interface
   function injectButton() {
-    // Evita duplicar o botão
     if (document.getElementById('lyric-projector-btn')) return;
 
     const btn = document.createElement('button');
     btn.id = 'lyric-projector-btn';
     btn.innerHTML = '🖥️ Projetar';
     btn.style.cssText = `
-      position: fixed; bottom: 80px; right: 20px; z-index: 99999;
-      background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
-      padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 14px;
-      backdrop-filter: blur(10px); transition: all 0.2s;
+      position: fixed; bottom: 85px; right: 25px; z-index: 9999;
+      background: rgba(0,0,0,0.7); color: white; border: 1px solid rgba(255,255,255,0.2);
+      padding: 10px 20px; border-radius: 30px; cursor: pointer; font-size: 14px;
+      backdrop-filter: blur(10px); font-weight: bold; transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     `;
-    btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(255,255,255,0.3)');
-    btn.addEventListener('mouseleave', () => btn.style.background = 'rgba(255,255,255,0.15)');
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = 'rgba(255,255,255,0.2)';
+      btn.style.transform = 'scale(1.05)';
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = 'rgba(0,0,0,0.7)';
+      btn.style.transform = 'scale(1)';
+    });
     btn.addEventListener('click', openProjection);
     document.body.appendChild(btn);
   }
 
-  // Atalho: Ctrl+Shift+P para abrir projeção
+  // Atalho
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
       e.preventDefault();
       openProjection();
     }
   });
 
-  // Inicia quando a página carrega
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { injectButton(); startObserver(); });
-  } else {
+  // Início
+  setTimeout(() => {
     injectButton();
     startObserver();
-  }
+  }, 2000);
 })();
+
