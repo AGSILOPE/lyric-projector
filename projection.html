@@ -95,6 +95,7 @@
 
     // Recebe letras via sistema de mensagens da extensão
     chrome.runtime.onMessage.addListener((message) => {
+      console.log('[Lyric Projector] Tela de projeção recebeu:', message);
       if (message.type === 'lyric-update') {
         activeLineEl.textContent = message.activeLine || '';
         activeTranslationEl.textContent = message.activeTranslation || '';

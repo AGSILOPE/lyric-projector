@@ -57,6 +57,7 @@
     if (payload === lastSentText) return;
     lastSentText = payload;
 
+    console.log('[Lyric Projector] Enviando para ponte:', activeText);
     chrome.runtime.sendMessage({
       type: 'lyric-update',
       activeLine: activeText.trim(),

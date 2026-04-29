@@ -3,7 +3,7 @@
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'lyric-update') {
-    // Reenvia a mensagem para todos os componentes da extensão (incluindo projection.html)
+    console.log('[Lyric Projector] Ponte recebeu e está repassando:', message.activeLine);
     chrome.runtime.sendMessage(message);
   }
 });
